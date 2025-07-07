@@ -31,6 +31,7 @@ cd ap-test
 │   Dockerfile-dagster
 │   pipeline.py
 │   requirements.txt
+│   workspace.yaml
 └── README.md
 ```
 
@@ -54,7 +55,7 @@ Replace ABSOLUTE_PATH with the absolute path to your local project directory. Fo
 
 ---
 
-### 3. Build and Start the Containers
+### 4. Build and Start the Containers
 
 ```bash
 docker-compose up --build
@@ -64,16 +65,6 @@ This will:
 
 * Spin up Dagster UI at [http://localhost:3000](http://localhost:3000)
 * Mount your local files for live development
-
----
-
-### 4. Access the Dagster UI
-
-Open your browser and go to:
-
-[http://localhost:3000](http://localhost:3000)
-
-You can launch jobs, view assets, and explore the pipeline here.
 
 ---
 
