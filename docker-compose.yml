@@ -1,0 +1,112 @@
+version: "3.7"
+services:
+  # Database used by dbt
+  postgres_analytics:
+    image: postgres:15
+    container_name: postgres_analytics
+    hostname: alt_payments_db
+    ports:
+      - 5432:5432
+    volumes:
+      - analytics:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=analytics
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - docker_network
+
+  # dagster containers is below
+  docker_postgres:
+    image: postgres:15
+    container_name: docker_postgres
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "dagster"
+    networks:
+      - docker_network
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+
+  docker_code:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-code
+    container_name: docker_code
+    image: docker_code_image
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres"
+      DAGSTER_POSTGRES_PASSWORD: "postgres"
+      DAGSTER_POSTGRES_DB: "dagster"
+      DAGSTER_CURRENT_IMAGE: "docker_code_image"
+      DAGSTER_DBT_PARSE_PROJECT_ON_LOAD: 1
+      DAGSTER_DEV: 1
+    volumes:
+      - .:/opt/dagster/app
+    networks:
+      - docker_network
+
+  docker_webserver:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-dagster
+    entrypoint:
+      - dagster-webserver
+      - -h
+      - "0.0.0.0"
+      - -p
+      - "3000"
+      - -w
+      - /opt/dagster/dagster_home/workspace.yaml
+    container_name: docker_webserver
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres"
+      DAGSTER_POSTGRES_PASSWORD: "postgres"
+      DAGSTER_POSTGRES_DB: "dagster"
+      DAGSTER_DEV: 1
+    volumes: # Make docker client accessible so we can terminate containers from the webserver
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/io_manager_storage:/tmp/io_manager_storage
+    networks:
+      - docker_network
+    depends_on:
+      - docker_postgres
+      - docker_code
+
+  docker_daemon:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-dagster
+    entrypoint:
+      - dagster-daemon
+      - run
+    container_name: docker_daemon
+    restart: on-failure
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres"
+      DAGSTER_POSTGRES_PASSWORD: "postgres"
+      DAGSTER_POSTGRES_DB: "dagster"
+      DAGSTER_DEV: 1
+    volumes: # Make docker client accessible so we can launch containers using host docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/io_manager_storage:/tmp/io_manager_storage
+    networks:
+      - docker_network
+    depends_on:
+      - docker_postgres
+      - docker_code
+
+networks:
+  docker_network:
+    driver: bridge
+    name: docker_network
+
+volumes:
+  analytics:
+  postgres_volume:
+    name: dagster_volume

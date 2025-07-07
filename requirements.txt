@@ -1,0 +1,10 @@
+dagster
+dagster-postgres
+dagster-docker
+dagster-dbt
+dbt-core
+dbt-postgres
+kagglehub
+pandas
+sqlalchemy
+psycopg2-binary

@@ -1,0 +1,7 @@
+models:
+  - name: fct_billing
+    description: >
+      Fact table that contains aggregated metrics related to billing and invoices
+    tests:
+      - unique:
+          column_name: "(customer_key || '-' || date_key || '-' || location_key )"
